@@ -28,6 +28,10 @@ const config = {
   subdir: devMode 
     ? ''
     : process.env.SUBDIR,
+
+  builddir: devMode 
+    ? process.env.BUILD_DIR_DEV
+    : process.env.BUILD_DIR_PROD,
 };
 
 export default config;

@@ -3,9 +3,14 @@ import express from 'express';
 import jwt     from 'jsonwebtoken';
 import cors    from 'cors';
 import bcrypt  from 'bcrypt';
+import path    from 'path';
 
 import config  from './config.js';
 import * as db from './services/db.js';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname  = path.dirname(__filename);
 
 const app = express();
 const router = express.Router();
@@ -77,6 +82,15 @@ async function performLogin(username, password) {
     return null;
   }
 }
+
+/* ---------------------------------------- */
+/* Public directory                         */
+/* ---------------------------------------- */
+
+
+router.use(express.static(
+  path.resolve(path.join(__dirname, `/${config.builddir}`)))
+);
 
 /* ---------------------------------------- */
 /* Token verification middleware            */
@@ -298,8 +312,6 @@ router.get('/api/users', async (_req, res, next) => {
 /* Pass router to subdir                    */
 /* ---------------------------------------- */
 
-console.log(`subdir: ${config.subdir}`);
-
 app.use(config.subdir, router);
 
 /* ---------------------------------------- */
@@ -312,9 +324,20 @@ app.use((err, _req, res, _next) => {
   res.status(statusCode).json({ message: err.message });
 });
 
+/* -------------------------------------------------- */
+/* Catch-all route to index.html                      */
+/* -------------------------------------------------- */
+
+router.get('/*', (_req, res) => {
+  res.sendFile(path.resolve(__dirname + `/${config.builddir}/index.html`));
+});
+
 /* ---------------------------------------- */
 /* Listen                                   */
 /* ---------------------------------------- */
+
+console.log('builddir: ' + path.join(__dirname, `/${config.builddir}`));
+console.log(`subdir: ${config.subdir}`);
 
 app.listen(config.port, () => {
   console.log(`Server listening on port ${config.port}`);
