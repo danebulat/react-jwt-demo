@@ -2,6 +2,7 @@ import 'dotenv/config';
 import express from 'express';
 import jwt     from 'jsonwebtoken';
 import cors    from 'cors';
+import bcrypt  from 'bcrypt';
 
 import config  from './config.js';
 import * as db from './services/db.js';
@@ -32,13 +33,22 @@ function generateRefreshToken(user) {
   );
 };
 
+function comparePassword(password, hashPassword) {
+  return bcrypt.compareSync(password, hashPassword);
+}
+
 async function performLogin(username, password) {
 
   //fetch user
-  const row = await db.query(`SELECT id, username, is_admin, created_at FROM users 
-    WHERE username='${username}' && password='${password}'`);
+  const row = await db.query(`SELECT id, username, password, is_admin, created_at FROM users 
+    WHERE username='${username}'`);
 
-  if (!db.selectIsEmpty(row)) {
+  if (row.length) {
+
+    // compare passwords
+    if (!comparePassword(password, row[0].password)) {
+      return null;
+    }
 
     //generate tokens
     const user = row[0];
@@ -51,7 +61,7 @@ async function performLogin(username, password) {
       VALUES (${user.id}, '${refreshToken}')`);
 
     if (!result.affectedRows) {
-      return res.status(500).json({ error: 'Database error' });
+      return null;
     }
 
     //return user
@@ -113,7 +123,7 @@ router.post("/api/refresh", async (req, res) => {
     WHERE refresh_token='${refreshToken}'
   `);
 
-  if (db.selectIsEmpty(row))
+  if (row.length)
     return res.status(403).json('Refresh token is not valid!');
   
   // if everything is ok, create new access + refresh tokens and send to user
@@ -164,9 +174,11 @@ router.post('/api/register', async (req, res, next) => {
     if (await db.isDuplicateUsername(username)) 
       return res.status(409).json({ error: 'Username already exists.' });
     
+    const hashPassword = bcrypt.hashSync(password, 10);
+
     const sql = `
       INSERT INTO users (username, password)
-      VALUES ('${username}', '${password}')`;
+      VALUES ('${username}', '${hashPassword}')`;
 
     const result = await db.query(sql);
     if (!result.affectedRows) {
@@ -174,7 +186,11 @@ router.post('/api/register', async (req, res, next) => {
     }
 
     const user = await performLogin(username, password);
-    res.json(user);
+    if (user) {
+      res.json(user);
+    } else {
+      res.status(500).json({ error: 'Registration error' });
+    }
   }
   catch (err) {
     console.error(`Error while creating user ${err.message}`);

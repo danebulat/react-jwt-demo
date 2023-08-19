@@ -23,14 +23,9 @@ async function getUserCount() {
   const result = await query(sql);
   return Number(result[0].total);
 }
-/* check if select statement returns empty */
-function selectIsEmpty(result) {
-  return Object.keys(result).length === 0;
-}
 
 export {
   query,
-  selectIsEmpty,
   isDuplicateUsername,
   getUserCount,
 };
