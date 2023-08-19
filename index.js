@@ -73,7 +73,7 @@ async function performLogin(username, password) {
     return {
       username:  user.username,
       isAdmin:   user.is_admin,
-      createdAt: user.createdAt,
+      createdAt: user.created_at,
       accessToken,
       refreshToken,
     };
