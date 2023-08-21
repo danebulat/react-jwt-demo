@@ -50,7 +50,7 @@ async function performLogin(username, password) {
 
   if (row.length) {
 
-    // compare passwords
+    //compare passwords
     if (!comparePassword(password, row[0].password)) {
       return null;
     }
@@ -87,7 +87,6 @@ async function performLogin(username, password) {
 /* Public directory                         */
 /* ---------------------------------------- */
 
-
 router.use(express.static(
   path.resolve(path.join(__dirname, `/${config.builddir}`)))
 );
@@ -98,13 +97,13 @@ router.use(express.static(
 
 function verify(req, res, next) {
 
-  // Sets req.user if sent token authenticates.
+  //sets req.user if sent token authenticates.
   const authHeader = req.headers.authorization;
 
   if (authHeader) {
     const token = authHeader.split(' ')[1];
     
-    // token's payload returned if verification succeeds
+    //token's payload returned if verification succeeds
     jwt.verify(token, config.jwt.secretKey, (err, user) => {
       if (err) {
         return res.status(403).json("Token is not valid");
@@ -125,43 +124,43 @@ function verify(req, res, next) {
 
 router.post("/api/refresh", async (req, res) => {
   
-  // get user refresh token
+  //get user refresh token
   const refreshToken = req.body.token;
 
   if (!refreshToken) 
     return res.status(401).json('You are not authenticated!');
 
-  // check if refresh token is valid
+  //check if refresh token is valid
   const row = await db.query(`
     SELECT * FROM jwt_refresh_tokens
     WHERE refresh_token='${refreshToken}'
   `);
 
-  if (row.length)
+  if (!row.length)
     return res.status(403).json('Refresh token is not valid!');
   
-  // if everything is ok, create new access + refresh tokens and send to user
+  //if everything is ok, create new access + refresh tokens and send to user
   jwt.verify(refreshToken, config.jwt.secretRefreshKey, async (err, user) => {
     err && console.log(err);
 
     try {
-      // delete old refresh token
+      //delete old refresh token
       await db.query(`
         DELETE FROM jwt_refresh_tokens 
         WHERE refresh_token='${refreshToken}'
       `);
 
-      // generate new tokens
+      //generate new tokens
       const newAccessToken = generateAccessToken(user);
       const newRefreshToken = generateAccessToken(user);
 
-      // persist new refresh token
+      //persist new refresh token
       await db.query(`
         INSERT INTO jwt_refresh_tokens (user_id, refresh_token)
         VALUES (${user.id}, '${newRefreshToken}')
       `);
       
-      // return new access and refresh tokens
+      //return new access and refresh tokens
       res.status(200).json({ 
         accessToken: newAccessToken,
         refreshToken: newRefreshToken,
@@ -238,7 +237,7 @@ router.post('/api/login', async (req, res, next) => {
 
 router.post('/api/logout', verify, async (req, res) => {
 
-  // delete refresh token
+  //delete refresh token
   const refreshToken = req.body.token;
   const user = req.user;
 
