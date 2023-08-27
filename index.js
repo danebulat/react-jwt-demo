@@ -268,7 +268,7 @@ router.delete('/api/users/:userId', verify, async (req, res, next) => {
   if (Number(req.user.id) === Number(req.params.userId) || req.user.isAdmin) {
 
     try {
-      const sql = `DELETE FROM users WHERE id = ${req.user.id}`;
+      const sql = `DELETE FROM users WHERE id = ${req.params.userId}`;
       await db.query(sql);
       res.status(200).json('User has been deleted');
     }
