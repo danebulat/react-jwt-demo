@@ -5,8 +5,9 @@ import cors    from 'cors';
 import bcrypt  from 'bcrypt';
 import path    from 'path';
 
-import config  from './config.js';
-import * as db from './services/db.js';
+import config     from './config.js';
+import * as db    from './services/db.js';
+import { escape } from 'mysql2';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -63,7 +64,7 @@ async function performLogin(username, password) {
     //insert refresh token
     const result = await db.query(`
       INSERT INTO jwt_refresh_tokens (user_id, refresh_token) 
-      VALUES (${user.id}, '${refreshToken}')`);
+      VALUES (${user.id}, ${escape(refreshToken)})`);
 
     if (!result.affectedRows) {
       return null;
@@ -133,7 +134,7 @@ router.post("/api/refresh", async (req, res) => {
   //check if refresh token is valid
   const row = await db.query(`
     SELECT * FROM jwt_refresh_tokens
-    WHERE refresh_token='${refreshToken}'
+    WHERE refresh_token=${escape(refreshToken)}'
   `);
 
   if (!row.length)
@@ -147,7 +148,7 @@ router.post("/api/refresh", async (req, res) => {
       //delete old refresh token
       await db.query(`
         DELETE FROM jwt_refresh_tokens 
-        WHERE refresh_token='${refreshToken}'
+        WHERE refresh_token=${escape(refreshToken)}
       `);
 
       //generate new tokens
@@ -157,7 +158,7 @@ router.post("/api/refresh", async (req, res) => {
       //persist new refresh token
       await db.query(`
         INSERT INTO jwt_refresh_tokens (user_id, refresh_token)
-        VALUES (${user.id}, '${newRefreshToken}')
+        VALUES (${user.id}, ${escape(newRefreshToken)})
       `);
       
       //return new access and refresh tokens
@@ -191,7 +192,7 @@ router.post('/api/register', async (req, res, next) => {
 
     const sql = `
       INSERT INTO users (username, password)
-      VALUES ('${username}', '${hashPassword}')`;
+      VALUES (${escape(username)}, ${escape(hashPassword)})`;
 
     const result = await db.query(sql);
     if (!result.affectedRows) {
@@ -245,7 +246,7 @@ router.post('/api/logout', verify, async (req, res) => {
     const result = await db.query(`
       DELETE FROM jwt_refresh_tokens 
       WHERE user_id=${user.id} AND 
-            refresh_token='${refreshToken}'
+            refresh_token=${escape(refreshToken)}
       `);
     
     const message = result.affectedRows
